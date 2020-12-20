@@ -1,0 +1,40 @@
+<div class="flex justify-evenly mx-4 space-x-4 bg-white" {{did-insert this.tensorflow.initializeMobileNetModel}}>
+    <div class="w-1/2">
+        <ul class="flex mx-4 text-center mt-4">
+            {{#each this.tabs as |tab|}}
+                {{#let (if (eq tab this.selected_tab) this.selected_tab_classes this.unselected_tab_classes) as |tab_classes|}}
+                    <li class="flex-1 mr-2">
+                        <button
+                            role="tab"
+                            type="button"
+                            class="font-display w-full text-center block border rounded py-2 px-4 {{tab_classes}}"
+                            {{on "click" (fn this.selectTab tab)}}
+                        >
+                            {{tab}}
+                        </button>
+                    </li>
+                {{/let}}
+            {{/each}}
+        </ul>
+
+        {{#if (eq this.selected_tab "Image List")}}
+            {{#each this.images as |image|}}
+                <Image-Button @image={{image}} @onClick={{this.clickImage}} />
+            {{/each}}
+        {{else if (eq this.selected_tab "Webcam")}}
+            <div class="w-full">
+                <video class="mt-4" {{did-insert this.tensorflow.initializeWebcam }}/>
+                <button type="button" class="flex items-center mx-auto my-4 px-4 py-2 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 active:bg-indigo-700 transition ease-in-out duration-150" {{on "click" this.captureImage}}>
+                    Capture Image
+                </button>
+            </div>
+        {{/if}}
+    </div>
+    <div class="w-1/2">
+        <ul>
+            {{#each this.predictions as |prediction|}}
+                <Prediction-Item @prediction={{prediction}} />
+            {{/each}}
+        </ul>
+    </div>
+</div>

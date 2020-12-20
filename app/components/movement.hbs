@@ -1,0 +1,14 @@
+<h1>Head Movement Classifier</h1>
+
+<video class="webcam" {{did-insert this.loadModel}} />
+<section class="buttons">
+    {{#each this.buttons as |button_option index|}}
+        <button type="button" onclick={{fn this.addExample index}}>{{button_option.label}}</button>
+    {{/each}}
+</section>
+
+<section class="buttons">
+    <button type="button" class="predict" {{on "click" this.runPredictions}}>Predict</button>
+</section>
+
+<p class="prediction"></p>

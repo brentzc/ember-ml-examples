@@ -7,4 +7,8 @@ export default class Router extends EmberRouter {
 }
 
 Router.map(function() {
+  this.route('main', { path: '/' });
+  this.route('image-classifier');
+  this.route('head-movements');
+  this.route('sentiment-analysis');
 });

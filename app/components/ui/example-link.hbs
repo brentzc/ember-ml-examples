@@ -1,0 +1,14 @@
+<LinkTo @route={{@route}} class="flex flex-col content-center py-4 border-2 border-indigo-900 bg-gray-100">
+    <div class="flex justify-center">
+        {{#let (component @icon) as |Icon|}}
+            <Icon
+                class="h-16 w-16"
+                @primary="text-indigo-500"
+                @secondary="text-indigo-700"
+            />
+        {{/let}}
+    </div>
+    <div class="flex justify-center">
+        <p class="font-display font-2xl">{{@title}}</p>
+    </div>
+</LinkTo>
