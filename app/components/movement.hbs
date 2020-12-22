@@ -1,14 +1,84 @@
-<h1>Head Movement Classifier</h1>
+<div class="flex justify-evenly mx-4 space-x-4 bg-white" {{did-insert this.tensorflow.initializeCustomClassifier}}>
+    <div class="w-1/2">
+        <video class="webcam" {{did-insert this.tensorflow.initializeWebcam}} />
+    </div>
+    <div class="w-1/2">
 
-<video class="webcam" {{did-insert this.loadModel}} />
-<section class="buttons">
-    {{#each this.buttons as |button_option index|}}
-        <button type="button" onclick={{fn this.addExample index}}>{{button_option.label}}</button>
-    {{/each}}
-</section>
+        {{#if this.error}}
+            <p class="text-md text-center font-display text-red-900">{{this.error}}</p>
+        {{/if}}
 
-<section class="buttons">
-    <button type="button" class="predict" {{on "click" this.runPredictions}}>Predict</button>
-</section>
+        <ul class="flex mx-4 text-center mt-4">
+            {{#each this.tabs as |tab|}}
+                {{#let (if (eq tab this.selected_tab) this.selected_tab_classes this.unselected_tab_classes) as |tab_classes|}}
+                    <li class="flex-1 mr-2">
+                        <button
+                            role="tab"
+                            type="button"
+                            class="font-display w-full text-center block border rounded py-2 px-4 {{tab_classes}}"
+                            {{on "click" (fn this.selectTab tab)}}
+                        >
+                            {{tab}}
+                        </button>
+                    </li>
+                {{/let}}
+            {{/each}}
+        </ul>
 
-<p class="prediction"></p>
+        {{#if (eq this.selected_tab "Train Model")}}
+            <div class="w-full">
+                <p class="text-md text-center font-display text-gray-900 mt-4">Train the classifier by turning on a webcam and looking up, down, left, right or center, while clicking the button corresponding to the direction you are looking.</p>
+                <div class="grid grid-cols-3 gap-4">
+                    <div />
+                    <Training-Button @title="Up" @onClick={{fn this.classifyHeadPosition 'Up'}} />
+                    <div />
+                    <Training-Button @title="Left" @onClick={{fn this.classifyHeadPosition 'Left'}} />
+                    <Training-Button @title="Center" @onClick={{fn this.classifyHeadPosition 'Center'}} />
+                    <Training-Button @title="Right" @onClick={{fn this.classifyHeadPosition 'Right'}} />
+                    <div />
+                    <Training-Button @title="Down" @onClick={{fn this.classifyHeadPosition 'Down'}} />
+                    <div />
+                </div>
+
+                {{#if this.message}}
+                    <p class="text-md text-center font-display text-gray-900">{{this.message}}</p>
+                {{/if}}
+            </div>
+        {{else if (eq this.selected_tab "Live Classification")}}
+            <div class="w-full flex mt-8">
+                <button
+                    role="button"
+                    type="button"
+                    {{on "click" (perform this.predictHeadPosition)}}
+                    class="w-1/2 inline-flex items-center my-4 mx-2 px-4 py-2 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 active:bg-indigo-700 transition ease-in-out duration-150"
+                >
+                    {{#if this.predictHeadPosition.isRunning}}
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Predicting...
+                    {{else}}
+                        Start Live Predictions
+                    {{/if}}
+                </button>
+
+                {{#if this.predictHeadPosition.isRunning}}
+                    <button
+                        role="button"
+                        type="button"
+                        {{on "click" this.cancelPrediction}}
+                        class="w-1/2 items-center my-4 mx-2 px-4 py-2 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-red-600 hover:bg-red-500 focus:border-red-700 active:bg-red-700 transition ease-in-out duration-150"
+                    >
+                        Cancel
+                    </button>
+                {{/if}}
+            </div>
+            <ul>
+            {{#each this.predictions as |prediction|}}
+                <Classifier-Prediction @prediction={{prediction}} />
+            {{/each}}
+            </ul>
+        {{/if}}
+    </div>
+</div>

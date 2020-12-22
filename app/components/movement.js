@@ -1,50 +1,58 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
-import tf from "@tensorflow/tfjs";
-import mobilenet from "@tensorflow-models/mobilenet";
-import knnClassifier from "@tensorflow-models/knn-classifier";
+import { task, timeout } from 'ember-concurrency';
+import { inject as service } from '@ember/service';
 
 export default class MovementComponent extends Component {
+    @service tensorflow;
 
-    @tracked webcam = null;
-    @tracked model = null;
-    @tracked net = null;
+    @tracked latest_result = null;
     @tracked predictions = [];
-    @tracked classifier = null;
+    @tracked message = null;
+    @tracked error = null;
+    
+    @tracked selected_tab  = 'Train Model';
 
-    @tracked buttons = [
-        { label: 'Up' },
-        { label: 'Down' },
-        { label: 'Left' },
-        { label: 'Right' }
-    ]
+    tabs = [ 'Train Model', 'Live Classification' ];
+    selected_tab_classes = 'border-indigo-500 bg-indigo-500 hover:bg-indigo-700 text-white';
+    unselected_tab_classes = 'border-white hover:border-gray-200 text-indigo-500 hover:bg-gray-200';
 
-    @action async loadModel(element) {
-        console.log('load model');
-        this.classifier = knnClassifier.create();
-        this.net = await mobilenet.load();
-        this.webcam = await tf.data.webcam(element);
+    @action selectTab(tab) {
+        this.selected_tab = tab;
     }
 
-    @action async addExample(class_id) {
-        console.log(class_id);
-        const img = await this.webcam.capture();
-        const activation = this.net.infer(img, "conv_preds");
-        this.classifier.addExample(activation, class_id);
-        img.dispose();
-    }
-
-    @action async runPredictions() {
-        if (this.classifier.getNumClasses() > 0) {
-            const img = await this.webcam.capture();
-            const activation = this.net.infer(img, 'conv_preds');
-            const result = await this.classifier.predictClass(activation);
-            console.log(result);
-            img.dispose();
+    @action async classifyHeadPosition(class_id) {
+        try {
+            await this.tensorflow.trainModelWithClass(class_id);
+            this.message = `Model trained for class "${class_id}"`;
+        } catch (error) {
+            this.error = error.message ? error.message : error;
         }
+    }
 
-        await tf.nextFrame();
-        console.log('done');
+    @(task(function*() {
+        try {
+            while (true) {
+                const prediction = yield this.tensorflow.predictClassFromWebcam();
+                const predictions = this.predictions;
+                const updated_predictions = [ prediction, ...predictions ];
+
+                if (updated_predictions.length > 3) {
+                    this.predictions = updated_predictions.slice(0, -1);
+                } else {
+                    this.predictions = updated_predictions;
+                }
+
+                console.log(this.predictions);
+                yield timeout(3000);
+            }
+        } catch (error) {
+            this.error = error.message ? error.message : error;
+        }
+    })) predictHeadPosition;
+
+    @action cancelPrediction() {
+        this.predictHeadPosition.cancelAll();
     }
 }

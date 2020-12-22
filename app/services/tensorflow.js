@@ -1,9 +1,10 @@
 import Service from '@ember/service';
-import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 
 import tf from "@tensorflow/tfjs";
 import mobilenet from "@tensorflow-models/mobilenet";
+import knnClassifier from "@tensorflow-models/knn-classifier";
+
 import fetch from 'fetch';
 
 const sentiment_model_url = 'https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/model.json';
@@ -28,13 +29,16 @@ export default class TensorflowService extends Service {
     }
 
     @action async loadTextSentimentMetadata() {
-        const metadata = await fetch(sentiment_metadata_url);
-        this.text_sentiment_metadata = metadata.json();
-        console.log(this.text_sentiment_metadata);
+        this.text_sentiment_metadata = await fetch(sentiment_metadata_url).then(res => res.json());
     }
 
     @action async initializeWebcam(video_element) {
         this.webcam = await tf.data.webcam(video_element)
+    }
+
+    @action async initializeCustomClassifier() {
+        this.classifier = knnClassifier.create();
+        await this.initializeMobileNetModel();
     }
 
     async captureImage() {
@@ -57,6 +61,24 @@ export default class TensorflowService extends Service {
         return this.model.classify(img_element);
     }
 
+    async trainModelWithClass(class_id) {
+        const img = await this.webcam.capture();
+        const activation = this.model.infer(img, 'conv_preds');
+        this.classifier.addExample(activation, class_id);
+        img.dispose();
+    }
+
+    async predictClassFromWebcam() {
+        const img = await this.webcam.capture();
+        const activation = this.model.infer(img, 'conv_preds');
+        const result = await this.classifier.predictClass(activation);
+        console.log(result);
+        img.dispose();
+        await tf.nextFrame();
+
+        return result;
+    }
+
     padSequences(sequences) {
         const metadata = this.text_sentiment_metadata;
         return sequences.map(seq => {
@@ -64,11 +86,7 @@ export default class TensorflowService extends Service {
                 seq.splice(0, seq.length - metadata.max_len);
             }
             if (seq.length < metadata.max_len) {
-                const pad = [];
-                for (let i = 0; i < metadata.max_len - seq.length; ++i) {
-                    pad.push(0);
-                }
-
+                const pad = [ ...new Array(metadata.max_len - seq.length) ].map(() => 0);
                 seq = pad.concat(seq);
             }
 
@@ -88,7 +106,7 @@ export default class TensorflowService extends Service {
             .split(" ");
 
         const sequence =  trimmed.map(word => {
-            const word_index = this.text_sentiment_metadata[word];
+            const word_index = this.text_sentiment_metadata.word_index[word];
             if (typeof word_index === 'undefined') {
                 return 2; // oov index
             }

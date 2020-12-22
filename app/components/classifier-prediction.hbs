@@ -1,0 +1,9 @@
+{{#let (key @prediction.confidences key=@prediction.label) as |probability|}}
+<li class="flex items-center px-6 py-4 whitespace-nowrap">
+    <div class="text-md font-bold text-gray-900 font-display rounded-full h-16 w-16 flex items-center justify-center border-indigo-400 border-2">{{format-probability probability}}</div>
+    <div class="ml-4">
+        <div class="text-sm font-medium text-gray-900 font-display">You are looking {{@prediction.label}}</div>
+        <div class="text-sm text-gray-500">{{probability}}</div>
+    </div>
+</li>
+{{/let}}
